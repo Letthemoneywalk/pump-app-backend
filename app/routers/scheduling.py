@@ -114,6 +114,8 @@ async def create_training(
 
 @router.get("/", response_model=list[TrainingResponse])
 async def get_trainings(
+    limit: int = 20,
+    offset: int = 0,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -124,6 +126,9 @@ async def get_trainings(
                 Training.trainer_id == current_user.id
             )
         )
+        .order_by(Training.starts_at.asc())
+        .limit(limit)
+        .offset(offset)
     )
     return result.scalars().all()
 

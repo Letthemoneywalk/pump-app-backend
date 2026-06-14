@@ -45,6 +45,8 @@ async def create_chat(
 
 @router.get("/", response_model=list[ChatResponse])
 async def get_chats(
+    limit: int = 20,
+    offset: int = 0,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -56,6 +58,9 @@ async def get_chats(
                 Chat.trainer_id == current_user.id
             )
         )
+        .order_by(Chat.created_at.desc())
+        .limit(limit)
+        .offset(offset)
     )
     return result.scalars().all()
 

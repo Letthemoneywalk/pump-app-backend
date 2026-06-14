@@ -62,6 +62,8 @@ async def get_chats(
 @router.get("/{chat_id}/messages", response_model=list[MessageResponse])
 async def get_messages(
     chat_id: int,
+    limit: int = 50,
+    offset: int = 0,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -75,12 +77,18 @@ async def get_messages(
         raise HTTPException(status_code=403, detail="Not your chat")
 
     result = await db.execute(
-        select(Message).where(Message.chat_id == chat_id)
+        select(Message)
+        .where(Message.chat_id == chat_id)
+        .order_by(Message.created_at.desc())
+        .limit(limit)
+        .offset(offset)
     )
     return result.scalars().all()
 
 @router.websocket("/ws/{chat_id}")
 async def websocket_endpoint(websocket: WebSocket, chat_id: int, token: str):
+    import json
+
     # проверяем токен
     user_id = decode_access_token(token)
     if not user_id:
@@ -106,10 +114,31 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: int, token: str):
                 )
                 db.add(new_message)
                 await db.commit()
+                await db.refresh(new_message)
 
             # отправляем всем в этом чате
+            payload = json.dumps({
+                "type": "message",
+                "message": {
+                    "id": new_message.id,
+                    "chat_id": chat_id,
+                    "sender_id": user_id,
+                    "text": text,
+                    "created_at": new_message.created_at.isoformat() + "Z"
+                }
+            })
+
+            dead_connections = []
             for connection in active_connections[chat_id]:
-                await connection.send_text(f"{user_id}: {text}")
+                try:
+                    await connection.send_text(payload)
+                except Exception:
+                    dead_connections.append(connection)
+
+            # удаляем мёртвые соединения
+            for dead in dead_connections:
+                active_connections[chat_id].remove(dead)
 
     except WebSocketDisconnect:
-        active_connections[chat_id].remove(websocket)
+        if websocket in active_connections.get(chat_id, []):
+            active_connections[chat_id].remove(websocket)

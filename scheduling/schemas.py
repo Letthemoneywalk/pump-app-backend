@@ -12,10 +12,6 @@ class TrainingCreate(BaseModel):
     client_id: Optional[int] = None
     trainer_id: Optional[int] = None
 
-    def model_post_init(self, __context):
-        if self.starts_at and self.starts_at.tzinfo is not None:
-            self.starts_at = self.starts_at.replace(tzinfo=None)
-
 class TrainingUpdate(BaseModel):
     title: Optional[str] = None
     type: Optional[str] = None

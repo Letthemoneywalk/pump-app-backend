@@ -17,5 +17,6 @@ class TrainerRequestResponse(BaseModel):
     message: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    chat_id: Optional[int] = None
 
     model_config = {"from_attributes": True}

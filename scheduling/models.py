@@ -10,9 +10,9 @@ class Training(Base):
     trainer_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     title = Column(String, nullable=False)
     type = Column(String, nullable=True)
-    starts_at = Column(DateTime, nullable=False)
+    starts_at = Column(DateTime(timezone=True), nullable=False)
     duration_minutes = Column(Integer, nullable=True)
-    status = Column(String, default="planned")  # planned / completed / cancelled
-    format = Column(String, nullable=True)  # online / gym / home / outside
+    status = Column(String, default="planned")
+    format = Column(String, nullable=True)
     notes = Column(String, nullable=True)
     created_at = Column(DateTime, server_default=func.now())

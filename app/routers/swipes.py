@@ -71,7 +71,46 @@ async def update_request(
     if request.trainer_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not your request")
 
+    # идемпотентность — повторный запрос с тем же статусом
+    if request.status == update_data.status:
+        return request
+
     request.status = update_data.status
+
+    # при принятии — создаём чат
+    chat_id = None
+    if update_data.status == "accepted":
+        from chat.models import Chat
+        result2 = await db.execute(
+            select(Chat).where(
+                Chat.client_id == request.client_id,
+                Chat.trainer_id == request.trainer_id
+            )
+        )
+        existing_chat = result2.scalar_one_or_none()
+        if existing_chat:
+            chat_id = existing_chat.id
+        else:
+            new_chat = Chat(
+                client_id=request.client_id,
+                trainer_id=request.trainer_id
+            )
+            db.add(new_chat)
+            await db.flush()
+            chat_id = new_chat.id
+
     await db.commit()
     await db.refresh(request)
-    return request
+
+    # добавляем chat_id в ответ
+    response = TrainerRequestResponse(
+        id=request.id,
+        client_id=request.client_id,
+        trainer_id=request.trainer_id,
+        status=request.status,
+        message=request.message,
+        created_at=request.created_at,
+        updated_at=request.updated_at,
+        chat_id=chat_id
+    )
+    return response

@@ -5,6 +5,7 @@ from app.routers.swipes import router as swipes_router
 from app.routers.clients import router as clients_router
 from app.routers.scheduling import router as scheduling_router
 from app.routers.chat import router as chat_router
+from app.routers.users import router as users_router
 
 app = FastAPI(
     title="FitCoach API",
@@ -20,6 +21,7 @@ app.include_router(swipes_router, prefix="/swipes", tags=["swipes"])
 app.include_router(clients_router, prefix="/clients", tags=["clients"])
 app.include_router(scheduling_router, prefix="/scheduling", tags=["scheduling"])
 app.include_router(chat_router, prefix="/chat", tags=["chat"])
+app.include_router(users_router, prefix="/users", tags=["users"])
 
 @app.get("/health")
 async def health():
